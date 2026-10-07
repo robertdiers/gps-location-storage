@@ -1,6 +1,6 @@
 # gps-location-storage
 
-Lokale Web-App zum Speichern von GPS-Koordinaten fuer Grenzsteine.
+Lokale Web-App zum Speichern von GPS-Positionen mit Fotos.
 
 ## Funktionen
 
@@ -9,10 +9,10 @@ Lokale Web-App zum Speichern von GPS-Koordinaten fuer Grenzsteine.
 - GPS-Position im Handy-Browser ermitteln
 - als installierbare PWA nutzbar und fuer Offline-Starts zwischengespeichert
 - neue Punkte mit Foto offline im Browser speichern und spaeter synchronisieren
-- Button **Grenzstein hier speichern**
+- Button **Position speichern**
 - Punkte manuell per Karte oder Koordinatenformular anlegen
 - Punkte bearbeiten, verschieben und loeschen
-- mehrere Fotos pro Grenzstein speichern, z. B. Detail- und Umgebungsfotos
+- mehrere Fotos pro Punkt speichern, z. B. Detail- und Umgebungsfotos
 - optionale Flurstuecksgrenzen aus lokalen ALKIS-Shape-ZIPs anzeigen
 - lokale SQLite-Datenbank unter `./data/app.sqlite`
 - Export als GeoJSON, CSV und GPX
@@ -143,7 +143,7 @@ Gespeichert werden:
 - Notiz
 - Erstell- und Aenderungszeitpunkt
 
-Fotos werden als Anhaenge zum Grenzstein gespeichert. Die Grenzstein-Koordinate bleibt unveraendert, auch wenn das Foto aus einigen Metern Entfernung aufgenommen wird.
+Fotos werden als Anhaenge zum Punkt gespeichert. Die gespeicherte Koordinate bleibt unveraendert, auch wenn das Foto aus einigen Metern Entfernung aufgenommen wird.
 
 ## Flurstuecksgrenzen
 
@@ -169,7 +169,7 @@ Format fuer Thueringen:
 Shape / SHP als ZIP
 ```
 
-Beim Start der App werden alle `*.zip` in `/shapes` gelesen. Aus jeder ZIP wird der Layer `*_Flurstueck.shp` gesucht, nach WGS84 transformiert und in SQLite-Tabellen neu geladen. Vorher werden nur die Grenzlinien-Tabellen geleert; gespeicherte Grenzsteine und Fotos bleiben erhalten.
+Beim Start der App werden alle `*.zip` in `/shapes` gelesen. Aus jeder ZIP wird der Layer `*_Flurstueck.shp` gesucht, nach WGS84 transformiert und in SQLite-Tabellen neu geladen. Vorher werden nur die Grenzlinien-Tabellen geleert; gespeicherte Punkte und Fotos bleiben erhalten.
 
 Wenn keine ZIPs vorhanden sind, laeuft die App normal ohne Flurstuecksgrenzen.
 
