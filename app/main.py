@@ -70,7 +70,7 @@ def index():
       <div id="map"></div>
       <div class="toolbar">
         <button id="locate-button" type="button">Aktuelle Position</button>
-        <button id="save-here-button" type="button" class="primary">Grenzstein hier speichern</button>
+        <button id="save-here-button" type="button" class="primary">Position speichern</button>
         <label class="inline-toggle"><input id="boundaries-toggle" type="checkbox" checked> Flurstücksgrenzen</label>
         <span id="gps-status">Noch keine Position ermittelt</span>
         <span id="sync-status" class="sync-status">Online</span>
@@ -79,7 +79,7 @@ def index():
     <aside class="side-panel">
       <form id="stone-form">
         <input type="hidden" id="stone-id">
-        <label>Name <input id="name" name="name" placeholder="z. B. Grenzstein 1"></label>
+        <label>Name <input id="name" name="name" placeholder="z. B. Punkt 1"></label>
         <div class="grid">
           <label>Breite <input id="latitude" name="latitude" inputmode="decimal" required></label>
           <label>Laenge <input id="longitude" name="longitude" inputmode="decimal" required></label>

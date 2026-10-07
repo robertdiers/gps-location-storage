@@ -36,7 +36,7 @@ def as_csv(stones: list[dict[str, Any]]) -> str:
 def as_gpx(stones: list[dict[str, Any]]) -> str:
     waypoints = []
     for stone in stones:
-        name = escape(stone.get("name") or f"Grenzstein {stone['id']}")
+        name = escape(stone.get("name") or f"Punkt {stone['id']}")
         notes = escape(stone.get("notes") or "")
         time = escape(stone.get("created_at") or "")
         waypoints.append(

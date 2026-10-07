@@ -147,7 +147,7 @@ function renderList() {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "stone-item";
-    item.innerHTML = `<strong>${escapeHtml(stone.name || `Grenzstein ${stone.id}`)}</strong><span>${stone.latitude.toFixed(6)}, ${stone.longitude.toFixed(6)}</span>`;
+    item.innerHTML = `<strong>${escapeHtml(stone.name || `Punkt ${stone.id}`)}</strong><span>${stone.latitude.toFixed(6)}, ${stone.longitude.toFixed(6)}</span>`;
     item.addEventListener("click", () => {
       selectStone(stone.id);
       map.setView([stone.latitude, stone.longitude], Math.max(map.getZoom(), 17));
@@ -159,7 +159,7 @@ function renderList() {
 
 function createPopupContent(stone) {
   const container = document.createElement("div");
-  const title = escapeHtml(stone.name || `Grenzstein ${stone.id}`);
+  const title = escapeHtml(stone.name || `Punkt ${stone.id}`);
   const acc = stone.accuracy_m == null ? "" : `<br>Genauigkeit: ${Number(stone.accuracy_m).toFixed(1)} m`;
   container.innerHTML = `<strong>${title}</strong><br>${stone.latitude.toFixed(6)}, ${stone.longitude.toFixed(6)}${acc}`;
 
@@ -262,7 +262,7 @@ async function saveHere() {
     return;
   }
   fields.id.value = "";
-  if (!fields.name.value) fields.name.value = `Grenzstein ${new Date().toLocaleString("de-DE")}`;
+  if (!fields.name.value) fields.name.value = `Position ${new Date().toLocaleString("de-DE")}`;
   await persist("POST", "/api/stones");
 }
 
@@ -317,7 +317,7 @@ async function persist(method, url) {
 async function deleteSelected() {
   const id = fields.id.value;
   if (!id) return;
-  if (!confirm("Diesen Grenzstein loeschen?")) return;
+  if (!confirm("Diesen Punkt loeschen?")) return;
   const response = await fetch(`/api/stones/${id}`, { method: "DELETE" });
   if (!response.ok) {
     alert(`Loeschen fehlgeschlagen: ${await response.text()}`);
@@ -347,7 +347,7 @@ async function loadPhotos(stoneId) {
 
     const image = document.createElement("img");
     image.src = `/api/photos/${photo.id}`;
-    image.alt = photo.caption || photo.original_filename || "Grenzstein-Foto";
+    image.alt = photo.caption || photo.original_filename || "Positionsfoto";
     card.appendChild(image);
 
     if (photo.caption) {
@@ -382,7 +382,7 @@ async function uploadPhoto(event) {
   event.preventDefault();
   const stoneId = fields.id.value;
   if (!stoneId) {
-    alert("Bitte zuerst einen Grenzstein speichern oder auswaehlen.");
+    alert("Bitte zuerst einen Punkt speichern oder auswaehlen.");
     return;
   }
   if (!photoFile.files.length) return;
