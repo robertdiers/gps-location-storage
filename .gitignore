@@ -1,0 +1,13 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+data/*.sqlite
+data/*.sqlite-*
+shapes/*
+!shapes/README.md
+rasters/*
+!rasters/README.md
+tiles/*
+!tiles/README.md
+data/

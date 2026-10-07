@@ -1,0 +1,7 @@
+{$APP_DOMAIN} {
+	reverse_proxy app:8000
+
+	tls {
+		dns duckdns {$DUCKDNS_TOKEN}
+	}
+}

@@ -1,0 +1,11 @@
+{
+  "name": "gps-location",
+  "short_name": "gps-location",
+  "description": "Offlinefaehige GPS-Erfassung mit Fotos",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f2eb",
+  "theme_color": "#2f6f3e",
+  "icons": []
+}
