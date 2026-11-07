@@ -32,6 +32,7 @@ services:
     environment:
       APP_DOMAIN: ${APP_DOMAIN}
       DUCKDNS_TOKEN: ${DUCKDNS_TOKEN}
+      APP_UPSTREAM: app:8000
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data

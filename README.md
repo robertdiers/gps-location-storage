@@ -16,10 +16,12 @@ Lokale Web-App zum Speichern von GPS-Positionen mit Fotos.
 - optionale Flurstuecksgrenzen aus lokalen ALKIS-Shape-ZIPs anzeigen
 - lokale SQLite-Datenbank unter `./data/app.sqlite`
 - Export als GeoJSON, CSV und GPX
-- Docker Compose mit FastAPI-App und Caddy HTTPS-Proxy
+- getrennte Docker-Container fuer FastAPI-App und Caddy HTTPS-Proxy
 - Caddy holt Zertifikate per DuckDNS DNS-01 Challenge
 
-## Start mit Docker Compose
+## Start als zwei getrennte Container
+
+App und Caddy laufen unabhaengig voneinander. Caddy erreicht die App ueber die Host-IP des Docker-Bridge-Netzes (Standard `172.17.0.1`). Dafuer veroeffentlicht der App-Container Port `8000` auf dem Host.
 
 1. Konfiguration anlegen:
 
@@ -34,17 +36,117 @@ APP_DOMAIN=deinname.duckdns.org
 DUCKDNS_TOKEN=dein-duckdns-token
 ```
 
-3. Container starten:
+3. App-Container bauen und starten:
+
+```bash
+make up
+```
+
+4. Caddy-Container bauen und starten:
+
+```bash
+make up-caddy
+```
+
+5. App im VPN/Netz aufrufen:
+
+```text
+https://deinname.duckdns.org
+```
+
+Beide Schritte zusammen:
+
+```bash
+make up-all
+```
+
+Stoppen:
+
+```bash
+make down-all
+```
+
+Logs:
+
+```bash
+make logs
+make logs-caddy
+```
+
+### Host-IP des Docker-Bridge-Netzes
+
+`172.17.0.1` ist das Standard-Gateway des Docker-Bridge-Netzes `bridge`. Pruefen:
+
+```bash
+ip -4 addr show docker0
+docker network inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}'
+```
+
+Weicht das Gateway ab, den Upstream explizit setzen:
+
+```bash
+make up-caddy APP_UPSTREAM=172.18.0.1:8000
+```
+
+Beim App-Container muss Port `8000` auf dem Host veroeffentlicht sein; das macht `make up` bereits. Dadurch ist die App zusaetzlich direkt per `http://<host>:8000` erreichbar, also am HTTPS-Proxy vorbei. Der Caddyfile-Default ist `172.17.0.1:8000` und kann per `APP_UPSTREAM` ueberschrieben werden.
+
+### Manuell ohne Makefile
+
+```bash
+docker build -t gps-location-storage-app .
+docker run -d --name gps-location-storage-app-local \
+  -p 8000:8000 \
+  -e DB_PATH=/data/app.sqlite \
+  -e RASTERS_DIR=/rasters \
+  -e TILES_DIR=/tiles \
+  -v "$PWD/data:/data" \
+  -v "$PWD/tiles:/tiles" \
+  -v "$PWD/shapes:/shapes:ro" \
+  -v "$PWD/rasters:/rasters:ro" \
+  gps-location-storage-app
+
+docker build -t gps-location-storage-caddy ./caddy
+docker volume create gps-location-storage-caddy-data
+docker volume create gps-location-storage-caddy-config
+docker run -d --name gps-location-storage-caddy-local \
+  -p 80:80 \
+  -p 443:443 \
+  -e APP_DOMAIN=deinname.duckdns.org \
+  -e DUCKDNS_TOKEN=dein-duckdns-token \
+  -e APP_UPSTREAM=172.17.0.1:8000 \
+  -v "$PWD/caddy/Caddyfile:/etc/caddy/Caddyfile:ro" \
+  -v gps-location-storage-caddy-data:/data \
+  -v gps-location-storage-caddy-config:/config \
+  gps-location-storage-caddy
+```
+
+## Alternative: Docker Compose
+
+Statt zwei einzelner Container kann weiterhin Docker Compose genutzt werden:
 
 ```bash
 docker compose up -d --build
 ```
 
-4. App im VPN/Netz aufrufen:
+Compose setzt fuer Caddy automatisch `APP_UPSTREAM=app:8000`, sodass der App-Container ueber den Compose-Dienstnamen erreichbar ist.
+
+## Container-Images aus GitHub Releases
+
+Wenn auf GitHub ein Release veroeffentlicht wird, baut der Workflow `.github/workflows/release.yml` beide Images fuer `linux/amd64` und pusht sie mit dem Release-Tag nach GitHub Container Registry:
 
 ```text
-https://deinname.duckdns.org
+ghcr.io/robertdiers/gps-location-storage-app:<release-tag>
+ghcr.io/robertdiers/gps-location-storage-caddy:<release-tag>
 ```
+
+Beispiel fuer das Release `1.2.3`:
+
+```bash
+docker pull ghcr.io/robertdiers/gps-location-storage-app:1.2.3
+docker pull ghcr.io/robertdiers/gps-location-storage-caddy:1.2.3
+```
+
+Gepusht wird mit dem `GITHUB_TOKEN` des Workflows; zusaetzliche Secrets sind nicht noetig. Sollen die Pakete oeffentlich abrufbar sein, muessen sie in den GitHub-Package-Einstellungen auf `public` gestellt werden.
 
 ## Lokaler HTTP-Test ohne Caddy
 

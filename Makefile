@@ -1,6 +1,14 @@
+-include .env
+
 IMAGE ?= gps-location-storage-app
 CONTAINER ?= gps-location-storage-app-local
 PORT ?= 8000
+DOCKER_HOST_IP ?= 172.17.0.1
+APP_UPSTREAM ?= $(DOCKER_HOST_IP):$(PORT)
+CADDY_IMAGE ?= gps-location-storage-caddy
+CADDY_CONTAINER ?= gps-location-storage-caddy-local
+CADDY_DATA_VOLUME ?= gps-location-storage-caddy-data
+CADDY_CONFIG_VOLUME ?= gps-location-storage-caddy-config
 DATA_DIR ?= $(CURDIR)/data
 SHAPES_DIR ?= $(CURDIR)/shapes
 RASTERS_DIR ?= $(CURDIR)/rasters
@@ -11,7 +19,11 @@ OSM_PREFETCH_ZOOMS ?= 16-19
 OSM_DOWNLOAD_TIMEOUT ?= 20
 OSM_TILE_USER_AGENT ?= gps-location-storage/1.0
 
-.PHONY: build up down restart logs test clean
+export APP_DOMAIN DUCKDNS_TOKEN
+
+.PHONY: build up down restart logs test clean \
+	build-caddy up-caddy down-caddy restart-caddy logs-caddy clean-caddy \
+	up-all down-all
 
 build:
 	docker build -t $(IMAGE) .
@@ -48,6 +60,44 @@ restart: down up
 
 logs:
 	docker logs -f $(CONTAINER)
+
+build-caddy:
+	docker build -t $(CADDY_IMAGE) ./caddy
+
+up-caddy: build-caddy
+	@test -n "$(APP_DOMAIN)" || { echo "APP_DOMAIN fehlt (siehe .env.example)" >&2; exit 1; }
+	@test -n "$(DUCKDNS_TOKEN)" || { echo "DUCKDNS_TOKEN fehlt (siehe .env.example)" >&2; exit 1; }
+	docker volume create $(CADDY_DATA_VOLUME) >/dev/null
+	docker volume create $(CADDY_CONFIG_VOLUME) >/dev/null
+	docker rm -f $(CADDY_CONTAINER) >/dev/null 2>&1 || true
+	docker run -d \
+		--name $(CADDY_CONTAINER) \
+		-p 80:80 \
+		-p 443:443 \
+		-e APP_DOMAIN=$(APP_DOMAIN) \
+		-e DUCKDNS_TOKEN=$(DUCKDNS_TOKEN) \
+		-e APP_UPSTREAM=$(APP_UPSTREAM) \
+		-v $(CURDIR)/caddy/Caddyfile:/etc/caddy/Caddyfile:ro \
+		-v $(CADDY_DATA_VOLUME):/data \
+		-v $(CADDY_CONFIG_VOLUME):/config \
+		$(CADDY_IMAGE)
+	@printf 'Caddy läuft: https://%s -> %s\n' '$(APP_DOMAIN)' '$(APP_UPSTREAM)'
+
+down-caddy:
+	docker rm -f $(CADDY_CONTAINER) >/dev/null 2>&1 || true
+
+restart-caddy: down-caddy up-caddy
+
+logs-caddy:
+	docker logs -f $(CADDY_CONTAINER)
+
+up-all: up up-caddy
+
+down-all: down down-caddy
+
+clean-caddy: down-caddy
+	docker volume rm $(CADDY_DATA_VOLUME) $(CADDY_CONFIG_VOLUME) >/dev/null 2>&1 || true
+	docker rmi $(CADDY_IMAGE) >/dev/null 2>&1 || true
 
 test:
 	$(MAKE) up OSM_PREFETCH_ZOOMS=

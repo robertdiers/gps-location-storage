@@ -1,7 +1,30 @@
-{$APP_DOMAIN} {
-	reverse_proxy app:8000
+(duckdns_tls) {
+    tls {
+        dns duckdns {$DUCKDNS_TOKEN}
+    }
+}
 
-	tls {
-		dns duckdns {$DUCKDNS_TOKEN}
-	}
+aniworld.{$APP_DOMAIN} {
+    reverse_proxy 172.17.0.1:8080
+    import duckdns_tls
+}
+
+emby.{$APP_DOMAIN} {
+    reverse_proxy 172.17.0.1:8096
+    import duckdns_tls
+}
+
+gps.{$APP_DOMAIN} {
+    reverse_proxy 172.17.0.1:8000
+    import duckdns_tls
+}
+
+grafana.{$APP_DOMAIN} {
+    reverse_proxy 172.17.0.1:3000
+    import duckdns_tls
+}
+
+heizung.{$APP_DOMAIN} {
+    reverse_proxy 172.17.0.1:50000
+    import duckdns_tls
 }
