@@ -1,4 +1,5 @@
 {
+  "id": "/",
   "name": "gps-location",
   "short_name": "gps-location",
   "description": "Offlinefaehige GPS-Erfassung mit Fotos",
@@ -7,5 +8,24 @@
   "display": "standalone",
   "background_color": "#f5f2eb",
   "theme_color": "#2f6f3e",
-  "icons": []
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

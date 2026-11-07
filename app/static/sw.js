@@ -1,9 +1,13 @@
-const CACHE_NAME = "gps-location-v2";
+const CACHE_NAME = "gps-location-v3";
 const APP_SHELL = [
   "/",
   "/static/app.css",
   "/static/app.js",
-  "/static/manifest.webmanifest"
+  "/static/manifest.webmanifest",
+  "/static/icons/icon-192.png",
+  "/static/icons/icon-512.png",
+  "/static/icons/icon-512-maskable.png",
+  "/static/icons/apple-touch-icon.png"
 ];
 const OPTIONAL_ASSETS = [
   "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",

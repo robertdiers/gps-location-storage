@@ -53,6 +53,7 @@ def index():
   <title>gps-location</title>
   <meta name="theme-color" content="#2f6f3e">
   <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="/static/app.css">
 </head>
