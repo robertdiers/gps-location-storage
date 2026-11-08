@@ -18,14 +18,16 @@ def utc_now() -> str:
 
 def connect() -> sqlite3.Connection:
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
-    con = sqlite3.connect(DB_PATH)
+    con = sqlite3.connect(DB_PATH, timeout=15)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
+    con.execute("PRAGMA busy_timeout = 15000")
     return con
 
 
 def init_db() -> None:
     with connect() as con:
+        con.execute("PRAGMA journal_mode = WAL")
         con.execute(
             """
             CREATE TABLE IF NOT EXISTS stones (

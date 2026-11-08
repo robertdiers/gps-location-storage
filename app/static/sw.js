@@ -1,4 +1,4 @@
-const CACHE_NAME = "gps-location-v3";
+const CACHE_NAME = "gps-location-v4";
 const APP_SHELL = [
   "/",
   "/static/app.css",

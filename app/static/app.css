@@ -26,6 +26,9 @@ main { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1rem; pa
 .sync-status { border: 1px solid var(--border); border-radius: 999px; padding: 0.35rem 0.65rem; background: white; color: var(--accent); font-size: 0.85rem; font-weight: 700; }
 .sync-status.is-pending, .sync-status.is-syncing { color: #8a6a00; border-color: #e6c766; background: #fff4c4; }
 .sync-status.is-offline { color: var(--danger); border-color: #d9a09b; background: #ffe9e6; }
+.raster-status { border: 1px solid #e6c766; border-radius: 999px; padding: 0.35rem 0.65rem; background: #fff4c4; color: #8a6a00; font-size: 0.85rem; font-weight: 700; }
+.raster-status.is-error { color: var(--danger); border-color: #d9a09b; background: #ffe9e6; }
+.raster-status[hidden] { display: none; }
 .inline-toggle { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; }
 .inline-toggle input { width: auto; }
 .side-panel { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 1rem; }

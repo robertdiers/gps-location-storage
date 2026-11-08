@@ -8,6 +8,8 @@ let currentPosition = null;
 let currentPositionMarker = null;
 let boundariesAvailable = false;
 let rasterLayers = [];
+let rasterPollTimer = null;
+const rasterLayerKeys = new Set();
 let pendingEntries = [];
 let syncInProgress = false;
 
@@ -39,6 +41,7 @@ const newPhotoFile = document.querySelector("#new-photo-file");
 const newPhotoCaption = document.querySelector("#new-photo-caption");
 const boundariesToggle = document.querySelector("#boundaries-toggle");
 const syncStatus = document.querySelector("#sync-status");
+const rasterStatus = document.querySelector("#raster-status");
 const fields = {
   id: document.querySelector("#stone-id"),
   name: document.querySelector("#name"),
@@ -444,23 +447,73 @@ async function loadBoundaries() {
 
 async function initRasters() {
   if (!hasLeaflet) return;
-  const response = await fetch("/api/rasters/status");
-  if (!response.ok) return;
-  const rasters = await response.json();
-  for (const raster of rasters) {
-    if (raster.tile_status !== "ready") {
-      if (raster.source_status === "downloaded" || raster.tile_status === "tiling" || raster.tile_status === "failed_tiles") {
-        console.warn(`Raster ${raster.key}: ${raster.tile_message || raster.source_message}`);
-      }
-      continue;
-    }
-    const layer = L.tileLayer(`/tiles/${encodeURIComponent(raster.key)}/{z}/{x}/{y}.png`, {
-      maxZoom: 22,
-      opacity: 0.85,
-      attribution: raster.key,
-    }).addTo(map);
-    rasterLayers.push(layer);
+  if (rasterPollTimer) {
+    clearTimeout(rasterPollTimer);
+    rasterPollTimer = null;
   }
+
+  let rasters;
+  try {
+    const response = await fetch("/api/rasters/status");
+    if (!response.ok) return;
+    rasters = await response.json();
+  } catch (error) {
+    console.warn("Raster status could not be loaded", error);
+    return;
+  }
+  if (!Array.isArray(rasters) || rasters.length === 0) {
+    if (rasterStatus) rasterStatus.hidden = true;
+    return;
+  }
+
+  const pending = [];
+  const failed = [];
+  for (const raster of rasters) {
+    if (raster.tile_status === "ready") {
+      addRasterLayer(raster);
+    } else if (raster.source_status === "failed_download" || raster.tile_status === "failed_tiles") {
+      failed.push(raster);
+    } else {
+      pending.push(raster);
+    }
+  }
+
+  if (pending.length === 0 && failed.length === 0) {
+    if (rasterStatus) rasterStatus.hidden = true;
+    return;
+  }
+
+  if (rasterStatus) {
+    rasterStatus.hidden = false;
+    rasterStatus.classList.toggle("is-error", pending.length === 0);
+    if (pending.length > 0) {
+      let text = "⚠ Raster wird vorbereitet";
+      const measurable = pending.filter((raster) => Number.isFinite(raster.tiles_total) && raster.tiles_total > 0);
+      if (measurable.length > 0) {
+        const done = measurable.reduce((sum, raster) => sum + (raster.tiles_done || 0), 0);
+        const total = measurable.reduce((sum, raster) => sum + raster.tiles_total, 0);
+        text += `: ${Math.min(99, Math.round((done / total) * 100))} %`;
+      }
+      rasterStatus.textContent = text;
+    } else {
+      rasterStatus.textContent = "⚠ Raster konnte nicht erzeugt werden";
+    }
+  }
+
+  if (pending.length > 0) {
+    rasterPollTimer = setTimeout(initRasters, 5000);
+  }
+}
+
+function addRasterLayer(raster) {
+  if (rasterLayerKeys.has(raster.key)) return;
+  rasterLayerKeys.add(raster.key);
+  const layer = L.tileLayer(`/tiles/${encodeURIComponent(raster.key)}/{z}/{x}/{y}.png`, {
+    maxZoom: 22,
+    opacity: 0.85,
+    attribution: raster.key,
+  }).addTo(map);
+  rasterLayers.push(layer);
 }
 
 async function initOffline() {

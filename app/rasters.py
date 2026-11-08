@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
+import math
 import os
 import shutil
 import subprocess
 import tempfile
+import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -19,6 +22,9 @@ RASTERS_DIR = Path(os.getenv("RASTERS_DIR", "/rasters"))
 RASTER_CACHE_DIR = db.DATA_DIR / "raster-cache"
 DOWNLOAD_TIMEOUT = int(os.getenv("RASTER_DOWNLOAD_TIMEOUT", "60"))
 TILE_ZOOMS = os.getenv("RASTER_TILE_ZOOMS", "16-20")
+
+_bounds_cache: dict[str, tuple[float, tuple[float, float, float, float] | None]] = {}
+_count_cache: dict[str, tuple[float, int]] = {}
 
 
 def prepare_rasters() -> list[str]:
@@ -44,7 +50,107 @@ def tile_path(key: str, z: int, x: int, y: int) -> Path:
 
 
 def raster_status() -> list[dict[str, Any]]:
-    return db.list_raster_sources()
+    sources = db.list_raster_sources()
+    for source in sources:
+        source.update(_raster_progress(source))
+    return sources
+
+
+def _raster_progress(source: dict[str, Any]) -> dict[str, Any]:
+    tile_status = source.get("tile_status")
+    if tile_status == "ready":
+        return {"tiles_done": None, "tiles_total": None, "progress_percent": 100}
+    if tile_status != "tiling":
+        return {"tiles_done": None, "tiles_total": None, "progress_percent": 0 if tile_status == "pending" else None}
+
+    cache_dir = RASTER_CACHE_DIR / source["key"]
+    done = _count_tiles(cache_dir / "tiles.tmp")
+    bounds = _wgs84_bounds(cache_dir / "mosaic.vrt")
+    total = 0
+    if bounds is not None:
+        total = sum(_tile_count_for_zoom(bounds, z) for z in _parse_zoom_range(TILE_ZOOMS))
+    percent = None
+    if total > 0:
+        percent = min(99, max(0, int(done * 100 / total)))
+    return {"tiles_done": done, "tiles_total": total or None, "progress_percent": percent}
+
+
+def _count_tiles(directory: Path) -> int:
+    if not directory.exists():
+        return 0
+    cache_key = str(directory)
+    now = time.monotonic()
+    cached = _count_cache.get(cache_key)
+    if cached is not None and now - cached[0] < 2.0:
+        return cached[1]
+    count = 0
+    for _root, _dirs, files in os.walk(directory):
+        count += sum(1 for name in files if name.endswith(".png"))
+    _count_cache[cache_key] = (now, count)
+    return count
+
+
+def _wgs84_bounds(vrt_path: Path) -> tuple[float, float, float, float] | None:
+    try:
+        mtime = vrt_path.stat().st_mtime
+    except OSError:
+        return None
+    cache_key = str(vrt_path)
+    cached = _bounds_cache.get(cache_key)
+    if cached is not None and cached[0] == mtime:
+        return cached[1]
+
+    bounds = None
+    try:
+        proc = subprocess.run(
+            ["gdalinfo", "-json", str(vrt_path)],
+            text=True,
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+        if proc.returncode == 0:
+            info = json.loads(proc.stdout)
+            points = [point for ring in info.get("wgs84Extent", {}).get("coordinates", []) for point in ring]
+            if points:
+                lons = [float(point[0]) for point in points]
+                lats = [float(point[1]) for point in points]
+                bounds = (min(lons), min(lats), max(lons), max(lats))
+    except Exception as exc:  # noqa: BLE001 - progress is optional
+        print(f"[rasters] WARNING could not determine raster extent for progress: {exc}", flush=True)
+    _bounds_cache[cache_key] = (mtime, bounds)
+    return bounds
+
+
+def _tile_count_for_zoom(bounds: tuple[float, float, float, float], zoom: int) -> int:
+    min_lon, min_lat, max_lon, max_lat = bounds
+    limit = 2**zoom
+
+    def tile_x(lon: float) -> int:
+        return max(0, min(limit - 1, int((lon + 180.0) / 360.0 * limit)))
+
+    def tile_y(lat: float) -> int:
+        lat = max(-85.05112878, min(85.05112878, lat))
+        value = (1.0 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2.0 * limit
+        return max(0, min(limit - 1, int(value)))
+
+    x_min, x_max = tile_x(min_lon), tile_x(max_lon)
+    y_min, y_max = tile_y(max_lat), tile_y(min_lat)
+    return (x_max - x_min + 1) * (y_max - y_min + 1)
+
+
+def _parse_zoom_range(value: str) -> list[int]:
+    zooms: set[int] = set()
+    for part in value.split(","):
+        item = part.strip()
+        if not item:
+            continue
+        if "-" in item:
+            start, end = [int(piece) for piece in item.split("-", 1)]
+            zooms.update(range(start, end + 1))
+        else:
+            zooms.add(int(item))
+    return sorted(z for z in zooms if 0 <= z <= 22)
 
 
 def _prepare_meta4(meta4: Path) -> str:

@@ -75,6 +75,7 @@ def index():
         <label class="inline-toggle"><input id="boundaries-toggle" type="checkbox" checked> Flurstücksgrenzen</label>
         <span id="gps-status">Noch keine Position ermittelt</span>
         <span id="sync-status" class="sync-status">Online</span>
+        <span id="raster-status" class="raster-status" hidden></span>
       </div>
     </section>
     <aside class="side-panel">
