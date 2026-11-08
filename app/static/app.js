@@ -508,11 +508,20 @@ async function initRasters() {
 function addRasterLayer(raster) {
   if (rasterLayerKeys.has(raster.key)) return;
   rasterLayerKeys.add(raster.key);
-  const layer = L.tileLayer(`/tiles/${encodeURIComponent(raster.key)}/{z}/{x}/{y}.png`, {
+  const options = {
     maxZoom: 22,
     opacity: 0.85,
     attribution: raster.key,
-  }).addTo(map);
+  };
+  if (Number.isFinite(raster.min_zoom)) options.minZoom = raster.min_zoom;
+  if (Number.isFinite(raster.max_zoom)) options.maxNativeZoom = raster.max_zoom;
+  if (Array.isArray(raster.bounds) && raster.bounds.length === 4 && raster.bounds.every((value) => Number.isFinite(value))) {
+    options.bounds = L.latLngBounds(
+      [raster.bounds[1], raster.bounds[0]],
+      [raster.bounds[3], raster.bounds[2]],
+    );
+  }
+  const layer = L.tileLayer(`/tiles/${encodeURIComponent(raster.key)}/{z}/{x}/{y}.png`, options).addTo(map);
   rasterLayers.push(layer);
 }
 

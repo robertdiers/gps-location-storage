@@ -12,6 +12,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -49,10 +50,20 @@ def tile_path(key: str, z: int, x: int, y: int) -> Path:
     return RASTER_CACHE_DIR / key / "tiles" / str(z) / str(x) / f"{y}.png"
 
 
+@lru_cache(maxsize=1)
+def tile_zooms() -> tuple[int, ...]:
+    return tuple(_parse_zoom_range(TILE_ZOOMS))
+
+
 def raster_status() -> list[dict[str, Any]]:
+    zooms = tile_zooms()
     sources = db.list_raster_sources()
     for source in sources:
         source.update(_raster_progress(source))
+        bounds = _wgs84_bounds(RASTER_CACHE_DIR / source["key"] / "mosaic.vrt")
+        source["bounds"] = list(bounds) if bounds else None
+        source["min_zoom"] = zooms[0] if zooms else None
+        source["max_zoom"] = zooms[-1] if zooms else None
     return sources
 
 

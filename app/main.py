@@ -11,7 +11,7 @@ from . import db
 from .boundaries import as_feature_collection, reload_boundaries
 from .exports import as_csv, as_geojson, as_gpx
 from .osm_tiles import prefetch_tiles_for_stone, tile_response_path
-from .rasters import prepare_rasters, raster_status, start_background_tiling, tile_path
+from .rasters import prepare_rasters, raster_status, start_background_tiling, tile_path, tile_zooms
 
 
 class StoneIn(BaseModel):
@@ -222,9 +222,20 @@ def api_rasters_status():
 
 @app.get("/tiles/{key}/{z}/{x}/{y}.png")
 def api_raster_tile(key: str, z: int, x: int, y: int):
+    zooms = tile_zooms()
+    if zooms and z not in zooms:
+        raise HTTPException(
+            status_code=404,
+            detail="Tile not found",
+            headers={"Cache-Control": "public, max-age=3600"},
+        )
     path = tile_path(key, z, x, y)
     if not path.exists():
-        raise HTTPException(status_code=404, detail="Tile not found")
+        raise HTTPException(
+            status_code=404,
+            detail="Tile not found",
+            headers={"Cache-Control": "public, max-age=60"},
+        )
     return FileResponse(path, media_type="image/png")
 
 
